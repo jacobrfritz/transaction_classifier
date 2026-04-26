@@ -1,6 +1,4 @@
-# src/base_python_project/main.py
+from .cli import main
 
-
-def run() -> None:
-    """Core application logic."""
-    print("Hello from base-python-project!")
+if __name__ == "__main__":
+    main()
