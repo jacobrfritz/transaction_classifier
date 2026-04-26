@@ -129,7 +129,9 @@ def transaction_exists_by_description(raw_string: str) -> bool:
     session = SessionLocal()
     try:
         return (
-            session.query(Transaction).filter(Transaction.raw_string == raw_string).first()
+            session.query(Transaction)
+            .filter(Transaction.raw_string == raw_string)
+            .first()
             is not None
         )
     finally:
