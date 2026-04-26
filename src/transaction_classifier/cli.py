@@ -1,5 +1,8 @@
 import argparse
 import csv
+import subprocess
+import sys
+from contextlib import contextmanager
 from datetime import datetime
 
 from rich.console import Console
@@ -214,6 +217,22 @@ def review():
     console.print("[green]Review completed![/green]")
 
 
+@contextmanager
+def database_lifecycle():
+    """Context manager to start and stop the database container."""
+    console.print("[bold blue]Starting database...[/bold blue]")
+    try:
+        # Use docker-compose up -d --wait to start and wait for health
+        subprocess.run(["docker", "compose", "up", "-d", "--wait"], check=True)
+        yield
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Failed to start database: {e}[/red]")
+        sys.exit(1)
+    finally:
+        console.print("[bold blue]Shutting down database...[/bold blue]")
+        subprocess.run(["docker", "compose", "down"], check=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Transaction Classifier CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -241,22 +260,25 @@ def main():
     del_p = cat_sub.add_parser("delete", help="Delete category")
     del_p.add_argument("name", help="Category name")
 
-    # Init DB command (optional but useful)
+    # Init DB command
     subparsers.add_parser("init-db", help="Initialize the database")
 
     args = parser.parse_args()
 
-    if args.command == "ingest":
-        ingest(args.csv_path)
-    elif args.command == "review":
-        review()
-    elif args.command == "category":
-        category_manager(args)
-    elif args.command == "init-db":
-        db.init_db()
-        console.print("[green]Database initialized.[/green]")
-    else:
+    if not args.command:
         parser.print_help()
+        return
+
+    with database_lifecycle():
+        if args.command == "ingest":
+            ingest(args.csv_path)
+        elif args.command == "review":
+            review()
+        elif args.command == "category":
+            category_manager(args)
+        elif args.command == "init-db":
+            db.init_db()
+            console.print("[green]Database initialized.[/green]")
 
 
 if __name__ == "__main__":
