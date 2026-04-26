@@ -14,3 +14,11 @@ def test_clean_text_starbucks():
     raw = "STARBUCKS COFFEE #1234"
     cleaned = ml.clean_text(raw)
     assert cleaned == "starbucks coffee"
+
+
+def test_get_embedding():
+    text = "starbucks coffee"
+    embedding = ml.get_embedding(text)
+    assert isinstance(embedding, list)
+    assert len(embedding) == 384
+    assert all(isinstance(x, float) for x in embedding)

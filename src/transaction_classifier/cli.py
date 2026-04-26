@@ -16,7 +16,10 @@ console = Console()
 
 
 def ingest(csv_path):
-    """Reads CSV, predicts categories, overwrites CSV, and inserts unique transactions into DB."""
+    """
+    Reads CSV, predicts categories, overwrites CSV,
+    and inserts unique transactions into DB.
+    """
     db.init_db()
 
     try:
@@ -116,9 +119,11 @@ def ingest(csv_path):
         console.print(
             f"[green]Successfully processed {len(rows)} transactions.[/green]"
         )
-        console.print(
-            f"[green]CSV overwritten with predicted categories. Added {added_to_db_count} new unique transactions to DB.[/green]"
+        msg = (
+            f"CSV overwritten with predicted categories. "
+            f"Added {added_to_db_count} new unique transactions to DB."
         )
+        console.print(f"[green]{msg}[/green]")
     except FileNotFoundError:
         console.print(f"[red]Error: File not found {csv_path}[/red]")
     except Exception as e:
@@ -151,9 +156,11 @@ def category_manager(args):
             console.print(f"[red]Category {args.old} not found.[/red]")
     elif args.category_command == "delete":
         if db.delete_category(args.name):
-            console.print(
-                f"[green]Deleted category {args.name}. Affected transactions reset to pending.[/green]"
+            msg = (
+                f"Deleted category {args.name}. "
+                "Affected transactions reset to pending."
             )
+            console.print(f"[green]{msg}[/green]")
         else:
             console.print(f"[red]Category {args.name} not found.[/red]")
 
@@ -189,7 +196,10 @@ def review():
 
         # Display Prediction
         confidence_pct = int(tx.confidence_score * 100)
-        prediction_text = f"Prediction: [bold green]{tx.predicted_category}[/bold green] (Confidence: {confidence_pct}%)"
+        prediction_text = (
+            f"Prediction: [bold green]{tx.predicted_category}[/bold green] "
+            f"(Confidence: {confidence_pct}%)"
+        )
         console.print(Panel(prediction_text))
 
         # Prompt for input

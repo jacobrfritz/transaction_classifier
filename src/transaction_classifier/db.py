@@ -6,11 +6,11 @@ from sqlalchemy import (
     Column,
     Date,
     Float,
+    ForeignKey,
     Numeric,
     String,
     create_engine,
     text,
-    ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -60,13 +60,14 @@ def init_db():
     seed_categories()
 
     # Create HNSW index for cosine distance if it doesn't exist
-    # SQLAlchemy doesn't natively support HNSW index creation in create_all for pgvector yet in a simple way
-    # so we can use a raw SQL command for the index.
+    # SQLAlchemy doesn't natively support HNSW index creation in create_all
+    # for pgvector yet in a simple way so we can use a raw SQL command for the index.
     with engine.connect() as conn:
         try:
             conn.execute(
                 text(
-                    "CREATE INDEX ON transactions USING hnsw (embedding vector_cosine_ops);"
+                    "CREATE INDEX ON transactions "
+                    "USING hnsw (embedding vector_cosine_ops);"
                 )
             )
             conn.commit()
@@ -137,7 +138,8 @@ def predict_category(embedding_vector):
         # Using raw SQL for the specific pgvector query as requested in spec
         # confidence = 1 - cosine_distance
         query = text("""
-            SELECT actual_category, (1 - (embedding <=> CAST(:val AS vector))) as confidence
+            SELECT actual_category,
+                   (1 - (embedding <=> CAST(:val AS vector))) as confidence
             FROM transactions
             WHERE status = 'verified'
             ORDER BY embedding <=> CAST(:val AS vector)
@@ -160,7 +162,10 @@ def get_pending_transactions():
 
 
 def transaction_exists_by_description(raw_string: str) -> bool:
-    """Checks if a transaction with the same raw_string already exists in the database."""
+    """
+    Checks if a transaction with the same raw_string
+    already exists in the database.
+    """
     session = SessionLocal()
     try:
         return (

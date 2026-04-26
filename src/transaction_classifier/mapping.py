@@ -1,27 +1,26 @@
 import json
 import os
-from typing import Dict, List, Optional
 
 MAPPINGS_FILE = "csv_mappings.json"
 
 
-def _get_signature(headers: List[str]) -> str:
+def _get_signature(headers: list[str]) -> str:
     """Returns a unique signature for a set of headers."""
     return ",".join(sorted([h.strip().lower() for h in headers]))
 
 
-def load_mappings() -> Dict[str, Dict[str, str]]:
+def load_mappings() -> dict[str, dict[str, str]]:
     """Loads mappings from the JSON file."""
     if not os.path.exists(MAPPINGS_FILE):
         return {}
     try:
-        with open(MAPPINGS_FILE, "r") as f:
+        with open(MAPPINGS_FILE) as f:
             return json.load(f)
-    except (json.JSONDecodeError, IOError):
+    except (OSError, json.JSONDecodeError):
         return {}
 
 
-def save_mapping(headers: List[str], mapping: Dict[str, str]) -> None:
+def save_mapping(headers: list[str], mapping: dict[str, str]) -> None:
     """Saves a new mapping configuration."""
     mappings = load_mappings()
     signature = _get_signature(headers)
@@ -30,7 +29,7 @@ def save_mapping(headers: List[str], mapping: Dict[str, str]) -> None:
         json.dump(mappings, f, indent=4)
 
 
-def get_mapping_for_headers(headers: List[str]) -> Optional[Dict[str, str]]:
+def get_mapping_for_headers(headers: list[str]) -> dict[str, str] | None:
     """Returns a mapping for the given headers if one exists."""
     mappings = load_mappings()
     signature = _get_signature(headers)
