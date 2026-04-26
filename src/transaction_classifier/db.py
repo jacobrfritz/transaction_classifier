@@ -124,6 +124,18 @@ def get_pending_transactions():
         session.close()
 
 
+def transaction_exists_by_description(raw_string: str) -> bool:
+    """Checks if a transaction with the same raw_string already exists in the database."""
+    session = SessionLocal()
+    try:
+        return (
+            session.query(Transaction).filter(Transaction.raw_string == raw_string).first()
+            is not None
+        )
+    finally:
+        session.close()
+
+
 def update_transaction(transaction_id, actual_category):
     session = SessionLocal()
     try:

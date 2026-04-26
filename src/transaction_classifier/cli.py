@@ -13,38 +13,49 @@ console = Console()
 
 
 def ingest(csv_path):
-    """Reads CSV, cleans, embeds, predicts, and inserts into DB."""
+    """Reads CSV, predicts categories, overwrites CSV, and inserts unique transactions into DB."""
     db.init_db()
 
     try:
+        rows = []
+        fieldnames = []
         with open(csv_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            count = 0
-            for row in reader:
-                # Expecting columns: date, amount, description
-                # Adjusting based on common CSV headers if necessary
-                raw_date = row.get("date") or row.get("Date")
-                raw_amount = row.get("amount") or row.get("Amount")
-                raw_string = (
-                    row.get("description")
-                    or row.get("Description")
-                    or row.get("raw_string")
-                )
+            fieldnames = reader.fieldnames or []
+            rows = list(reader)
 
-                if not raw_string:
-                    continue
+        if "predicted_category" not in fieldnames:
+            fieldnames.append("predicted_category")
 
-                # Clean and Embed
-                clean_string = ml.clean_text(raw_string)
-                embedding = ml.get_embedding(clean_string)
+        added_to_db_count = 0
+        for row in rows:
+            # Expecting columns: date, amount, description
+            raw_date = row.get("date") or row.get("Date")
+            raw_amount = row.get("amount") or row.get("Amount")
+            raw_string = (
+                row.get("description")
+                or row.get("Description")
+                or row.get("raw_string")
+            )
 
-                # Predict
-                predicted_category, confidence = db.predict_category(embedding)
-                if not predicted_category:
-                    predicted_category = "Unknown"
-                    confidence = 0.0
+            if not raw_string:
+                row["predicted_category"] = "Unknown"
+                continue
 
-                # Insert
+            # Clean and Embed
+            clean_string = ml.clean_text(raw_string)
+            embedding = ml.get_embedding(clean_string)
+
+            # Predict
+            predicted_category, confidence = db.predict_category(embedding)
+            if not predicted_category:
+                predicted_category = "Unknown"
+                confidence = 0.0
+
+            row["predicted_category"] = predicted_category
+
+            # Only insert if unique description
+            if not db.transaction_exists_by_description(raw_string):
                 date_obj = None
                 if raw_date:
                     try:
@@ -64,9 +75,20 @@ def ingest(csv_path):
                     confidence_score=confidence,
                     embedding=embedding,
                 )
-                count += 1
+                added_to_db_count += 1
 
-            console.print(f"[green]Successfully ingested {count} transactions.[/green]")
+        # Overwrite the original CSV
+        with open(csv_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        console.print(
+            f"[green]Successfully processed {len(rows)} transactions.[/green]"
+        )
+        console.print(
+            f"[green]CSV overwritten with predicted categories. Added {added_to_db_count} new unique transactions to DB.[/green]"
+        )
     except FileNotFoundError:
         console.print(f"[red]Error: File not found {csv_path}[/red]")
     except Exception as e:
