@@ -122,27 +122,67 @@ def ingest(csv_path):
         console.print(f"[red]Error during ingestion: {e}[/red]")
 
 
+def category_manager(args):
+    """Handles category management commands."""
+    db.init_db()
+    if args.category_command == "list":
+        categories = db.get_all_categories()
+        if not categories:
+            console.print("[yellow]No categories defined.[/yellow]")
+        else:
+            table = Table(title="Defined Categories")
+            table.add_column("Category Name", style="cyan")
+            for cat in categories:
+                table.add_row(cat)
+            console.print(table)
+    elif args.category_command == "add":
+        try:
+            db.add_category(args.name)
+            console.print(f"[green]Added category: {args.name}[/green]")
+        except Exception as e:
+            console.print(f"[red]Error adding category: {e}[/red]")
+    elif args.category_command == "rename":
+        if db.rename_category(args.old, args.new):
+            console.print(f"[green]Renamed {args.old} to {args.new}[/green]")
+        else:
+            console.print(f"[red]Category {args.old} not found.[/red]")
+    elif args.category_command == "delete":
+        if db.delete_category(args.name):
+            console.print(
+                f"[green]Deleted category {args.name}. Affected transactions reset to pending.[/green]"
+            )
+        else:
+            console.print(f"[red]Category {args.name} not found.[/red]")
+
+
 def review():
     """Human Review Loop."""
+    db.init_db()
     pending = db.get_pending_transactions()
     if not pending:
         console.print("[yellow]No pending transactions to review.[/yellow]")
         return
 
     total = len(pending)
-    for idx, tx in enumerate(pending, 1):
+    idx = 0
+    while idx < total:
+        tx = pending[idx]
+        categories = db.get_all_categories()
         console.clear()
 
         # Display Transaction info
-        table = Table(title=f"Transaction Review [{idx}/{total}]")
+        table = Table(title=f"Transaction Review [{idx+1}/{total}]")
         table.add_column("Field", style="cyan")
         table.add_column("Value", style="magenta")
         table.add_row("Date", str(tx.date))
         table.add_row("Amount", f"${tx.amount:.2f}")
         table.add_row("Raw String", tx.raw_string)
         table.add_row("Clean String", tx.clean_string)
-
         console.print(table)
+
+        # Display Categories
+        if categories:
+            console.print(f"Existing Categories: [cyan]{', '.join(categories)}[/cyan]")
 
         # Display Prediction
         confidence_pct = int(tx.confidence_score * 100)
@@ -150,12 +190,26 @@ def review():
         console.print(Panel(prediction_text))
 
         # Prompt for input
-        prompt_text = "Press [Enter] to accept, or type the correct category"
-        user_input = Prompt.ask(prompt_text, default=tx.predicted_category)
+        prompt_text = "Press [Enter] to accept, or type a category name"
+        user_input = Prompt.ask(prompt_text, default=tx.predicted_category).strip()
+
+        category = user_input if user_input else tx.predicted_category
+
+        # Enforce category existence
+        if category not in categories:
+            confirm = Prompt.ask(
+                f"Category [bold]{category}[/bold] does not exist. Create it?",
+                choices=["y", "n"],
+                default="y",
+            )
+            if confirm == "y":
+                db.add_category(category)
+            else:
+                continue  # Re-prompt for the same transaction
 
         # Update DB
-        category = user_input if user_input else tx.predicted_category
         db.update_transaction(tx.id, category)
+        idx += 1
 
     console.print("[green]Review completed![/green]")
 
@@ -173,6 +227,20 @@ def main():
     # Review command
     subparsers.add_parser("review", help="Review pending transactions")
 
+    # Category command
+    cat_parser = subparsers.add_parser("category", help="Manage categories")
+    cat_sub = cat_parser.add_subparsers(
+        dest="category_command", help="Category actions"
+    )
+    cat_sub.add_parser("list", help="List categories")
+    add_p = cat_sub.add_parser("add", help="Add category")
+    add_p.add_argument("name", help="Category name")
+    ren_p = cat_sub.add_parser("rename", help="Rename category")
+    ren_p.add_argument("old", help="Old name")
+    ren_p.add_argument("new", help="New name")
+    del_p = cat_sub.add_parser("delete", help="Delete category")
+    del_p.add_argument("name", help="Category name")
+
     # Init DB command (optional but useful)
     subparsers.add_parser("init-db", help="Initialize the database")
 
@@ -182,6 +250,8 @@ def main():
         ingest(args.csv_path)
     elif args.command == "review":
         review()
+    elif args.command == "category":
+        category_manager(args)
     elif args.command == "init-db":
         db.init_db()
         console.print("[green]Database initialized.[/green]")

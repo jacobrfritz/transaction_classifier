@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     create_engine,
     text,
+    ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -24,6 +25,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+class Category(Base):
+    __tablename__ = "categories"
+    name = Column(String(100), primary_key=True)
+
+
 class Transaction(Base):
     __tablename__ = "transactions"
 
@@ -34,7 +40,10 @@ class Transaction(Base):
     clean_string = Column(String(255))
     predicted_category = Column(String(100))
     confidence_score = Column(Float)
-    actual_category = Column(String(100))
+    actual_category = Column(
+        String(100),
+        ForeignKey("categories.name", onupdate="CASCADE", ondelete="SET NULL"),
+    )
     status = Column(String(20), default="pending")  # 'pending' or 'verified'
     embedding = Column(Vector(384))
 
@@ -46,6 +55,9 @@ def init_db():
         conn.commit()
 
     Base.metadata.create_all(bind=engine)
+
+    # Seed default categories
+    seed_categories()
 
     # Create HNSW index for cosine distance if it doesn't exist
     # SQLAlchemy doesn't natively support HNSW index creation in create_all for pgvector yet in a simple way
@@ -61,6 +73,29 @@ def init_db():
         except Exception:
             # If index already exists, this might fail, which is fine for init
             pass
+
+
+def seed_categories():
+    """Seeds default categories if the table is empty."""
+    default_categories = [
+        "Dining",
+        "Groceries",
+        "Transport",
+        "Utilities",
+        "Entertainment",
+        "Shopping",
+        "Income",
+        "Transfer",
+    ]
+    session = SessionLocal()
+    try:
+        # Check if table is empty
+        if session.query(Category).count() == 0:
+            for cat_name in default_categories:
+                session.add(Category(name=cat_name))
+            session.commit()
+    finally:
+        session.close()
 
 
 def insert_transaction(
@@ -147,6 +182,60 @@ def update_transaction(transaction_id, actual_category):
         if db_transaction:
             db_transaction.actual_category = actual_category
             db_transaction.status = "verified"
+            session.commit()
+            return True
+        return False
+    finally:
+        session.close()
+
+
+def get_all_categories():
+    """Returns a sorted list of all category names."""
+    session = SessionLocal()
+    try:
+        results = session.query(Category).order_by(Category.name).all()
+        return [c.name for c in results]
+    finally:
+        session.close()
+
+
+def add_category(name: str):
+    """Adds a new category."""
+    session = SessionLocal()
+    try:
+        new_cat = Category(name=name)
+        session.add(new_cat)
+        session.commit()
+        return new_cat
+    finally:
+        session.close()
+
+
+def rename_category(old_name: str, new_name: str):
+    """Renames a category. Cascade handles the transactions."""
+    session = SessionLocal()
+    try:
+        cat = session.query(Category).filter(Category.name == old_name).first()
+        if cat:
+            cat.name = new_name
+            session.commit()
+            return True
+        return False
+    finally:
+        session.close()
+
+
+def delete_category(name: str):
+    """Deletes a category and resets affected transactions to pending."""
+    session = SessionLocal()
+    try:
+        cat = session.query(Category).filter(Category.name == name).first()
+        if cat:
+            # Revert affected transactions to pending
+            session.query(Transaction).filter(
+                Transaction.actual_category == name
+            ).update({"status": "pending"})
+            session.delete(cat)
             session.commit()
             return True
         return False
