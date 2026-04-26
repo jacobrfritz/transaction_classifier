@@ -20,9 +20,12 @@ def ingest(csv_path):
         rows = []
         fieldnames = []
         with open(csv_path, encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            fieldnames = reader.fieldnames or []
-            rows = list(reader)
+            reader = csv.DictReader(f, skipinitialspace=True)
+            fieldnames = [fn.strip() for fn in (reader.fieldnames or [])]
+            # Normalize rows to have stripped keys
+            rows = []
+            for row in reader:
+                rows.append({k.strip(): v for k, v in row.items()})
 
         if not fieldnames:
             console.print("[red]Error: CSV file has no headers.[/red]")

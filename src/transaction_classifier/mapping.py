@@ -7,7 +7,7 @@ MAPPINGS_FILE = "csv_mappings.json"
 
 def _get_signature(headers: List[str]) -> str:
     """Returns a unique signature for a set of headers."""
-    return ",".join(sorted([h.lower() for h in headers]))
+    return ",".join(sorted([h.strip().lower() for h in headers]))
 
 
 def load_mappings() -> Dict[str, Dict[str, str]]:
