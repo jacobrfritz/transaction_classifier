@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
-from . import db, ml
+from . import db, mapping, ml
 
 console = Console()
 
@@ -24,19 +24,43 @@ def ingest(csv_path):
             fieldnames = reader.fieldnames or []
             rows = list(reader)
 
+        if not fieldnames:
+            console.print("[red]Error: CSV file has no headers.[/red]")
+            return
+
+        # Get or create mapping
+        header_mapping = mapping.get_mapping_for_headers(fieldnames)
+        if not header_mapping:
+            console.print(
+                "[yellow]Unknown CSV format. Please map the columns:[/yellow]"
+            )
+            date_col = Prompt.ask(
+                "Which column is the [bold]Date[/bold]?", choices=fieldnames
+            )
+            amount_col = Prompt.ask(
+                "Which column is the [bold]Amount[/bold]?", choices=fieldnames
+            )
+            desc_col = Prompt.ask(
+                "Which column is the [bold]Description[/bold]?", choices=fieldnames
+            )
+
+            header_mapping = {
+                "date": date_col,
+                "amount": amount_col,
+                "description": desc_col,
+            }
+            mapping.save_mapping(fieldnames, header_mapping)
+            console.print("[green]Mapping saved for future use.[/green]")
+
         if "predicted_category" not in fieldnames:
             fieldnames.append("predicted_category")
 
         added_to_db_count = 0
         for row in rows:
-            # Expecting columns: date, amount, description
-            raw_date = row.get("date") or row.get("Date")
-            raw_amount = row.get("amount") or row.get("Amount")
-            raw_string = (
-                row.get("description")
-                or row.get("Description")
-                or row.get("raw_string")
-            )
+            # Use mapping to extract values
+            raw_date = row.get(header_mapping["date"])
+            raw_amount = row.get(header_mapping["amount"])
+            raw_string = row.get(header_mapping["description"])
 
             if not raw_string:
                 row["predicted_category"] = "Unknown"
