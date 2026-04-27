@@ -20,6 +20,28 @@ The bootstrap script will:
 
 ## Usage
 
+This project provides both a CLI and a Web Interface.
+
+### Web Interface
+
+The web interface consists of a FastAPI backend and a Next.js frontend.
+
+1. **Start the Backend**:
+   ```bash
+   uv run transaction_classifier serve
+   ```
+   This will start the database (via Docker Compose) and the FastAPI server on `http://localhost:8000`.
+
+2. **Start the Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   The dashboard will be available at `http://localhost:3000`.
+
+### CLI Interface
+
 Common development tasks are managed via the `Makefile`. You can run these commands using `make <command>`.
 
 | Command | Description |
@@ -27,6 +49,7 @@ Common development tasks are managed via the `Makefile`. You can run these comma
 | `make install` | Sync dependencies using `uv`. |
 | `make run` | Run the application CLI. |
 | `make test` | Run the test suite with `pytest`. |
+... (rest of table)
 | `make test-watch` | Run tests in watch mode using `pytest-watch`. |
 | `make test-cov` | Run tests and generate a coverage report. |
 | `make lint` | Check code style and quality with `ruff`. |

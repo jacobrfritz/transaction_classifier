@@ -227,13 +227,23 @@ def review():
     console.print("[green]Review completed![/green]")
 
 
+def serve(host="0.0.0.0", port=8000):
+    """Starts the FastAPI server."""
+    import uvicorn
+
+    console.print(
+        f"[bold green]Starting API server at http://{host}:{port}[/bold green]"
+    )
+    uvicorn.run("transaction_classifier.app:app", host=host, port=port, reload=True)
+
+
 @contextmanager
 def database_lifecycle():
     """Context manager to start and stop the database container."""
     console.print("[bold blue]Starting database...[/bold blue]")
     try:
         # Use docker-compose up -d --wait to start and wait for health
-        subprocess.run(["docker", "compose", "up", "-d", "--wait"], check=True)
+        subprocess.run(["docker", "compose", "up", "-d", "--wait", "db"], check=True)
         yield
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Failed to start database: {e}[/red]")
@@ -273,6 +283,11 @@ def main():
     # Init DB command
     subparsers.add_parser("init-db", help="Initialize the database")
 
+    # Serve command
+    serve_parser = subparsers.add_parser("serve", help="Start the FastAPI server")
+    serve_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -289,6 +304,8 @@ def main():
         elif args.command == "init-db":
             db.init_db()
             console.print("[green]Database initialized.[/green]")
+        elif args.command == "serve":
+            serve(args.host, args.port)
 
 
 if __name__ == "__main__":

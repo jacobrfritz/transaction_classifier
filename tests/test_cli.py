@@ -119,5 +119,5 @@ def test_database_lifecycle(mock_run):
     
     # Check if docker compose up and down were called
     assert mock_run.call_count == 2
-    mock_run.assert_any_call(["docker", "compose", "up", "-d", "--wait"], check=True)
+    mock_run.assert_any_call(["docker", "compose", "up", "-d", "--wait", "db"], check=True)
     mock_run.assert_any_call(["docker", "compose", "down"], check=False)

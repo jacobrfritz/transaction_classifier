@@ -1,12 +1,21 @@
 import re
+from typing import Optional
 
 from sentence_transformers import SentenceTransformer
 
-# Load the model once
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Lazy loader for the model
+_model: Optional[SentenceTransformer] = None
 
 
-def clean_text(raw_string):
+def get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        print("Loading SentenceTransformer model...")
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
+
+
+def clean_text(raw_string: str) -> str:
     """
     Lowercases, removes dates, strips digits, and removes junk prefixes.
     """
@@ -32,9 +41,10 @@ def clean_text(raw_string):
     return text
 
 
-def get_embedding(text):
+def get_embedding(text: str) -> list[float]:
     """
     Returns a 384-float list representing the embedding of the text.
     """
+    model = get_model()
     embedding = model.encode(text)
     return embedding.tolist()

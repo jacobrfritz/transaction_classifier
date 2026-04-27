@@ -37,6 +37,7 @@ api = [
     "uvicorn[standard]>=0.22.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
+    "python-multipart>=0.0.9",
 ]
 
 # Data Engineering & Pipelines
@@ -70,6 +71,9 @@ dev = [
     "pytest-cov>=5.0.0",
     "pre-commit>=3.7.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/transaction_classifier"]
 
 [tool.ruff]
 line-length = 88

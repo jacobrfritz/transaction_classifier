@@ -139,3 +139,42 @@ def test_seed_categories(mock_session_local):
     mock_session.query.return_value.count.return_value = 5
     db.seed_categories()
     assert not mock_session.add.called
+
+
+@patch("transaction_classifier.db.SessionLocal")
+def test_get_transactions(mock_session_local):
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+    
+    mock_tx = MagicMock()
+    mock_session.query.return_value.filter.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_tx]
+    mock_session.query.return_value.filter.return_value.filter.return_value.count.return_value = 1
+    
+    results, total = db.get_transactions(search="test", status="pending")
+    assert results == [mock_tx]
+    assert total == 1
+
+
+@patch("transaction_classifier.db.SessionLocal")
+def test_update_transactions_bulk(mock_session_local):
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+    
+    success = db.update_transactions_bulk(["id1", "id2"], "Dining")
+    assert success is True
+    mock_session.query.return_value.filter.return_value.update.assert_called_once()
+    mock_session.commit.assert_called_once()
+
+
+@patch("transaction_classifier.db.SessionLocal")
+def test_get_category_stats(mock_session_local):
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+    
+    mock_session.query.return_value.group_by.return_value.all.return_value = [("Dining", 5)]
+    mock_session.query.return_value.count.return_value = 5
+    
+    stats = db.get_category_stats()
+    assert stats["total"] == 5
+    assert stats["breakdown"][0]["category"] == "Dining"
+    assert stats["breakdown"][0]["count"] == 5

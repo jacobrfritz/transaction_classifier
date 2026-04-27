@@ -10,6 +10,7 @@ from sqlalchemy import (
     Numeric,
     String,
     create_engine,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -60,8 +61,6 @@ def init_db():
     seed_categories()
 
     # Create HNSW index for cosine distance if it doesn't exist
-    # SQLAlchemy doesn't natively support HNSW index creation in create_all
-    # for pgvector yet in a simple way so we can use a raw SQL command for the index.
     with engine.connect() as conn:
         try:
             conn.execute(
@@ -90,7 +89,6 @@ def seed_categories():
     ]
     session = SessionLocal()
     try:
-        # Check if table is empty
         if session.query(Category).count() == 0:
             for cat_name in default_categories:
                 session.add(Category(name=cat_name))
@@ -135,8 +133,6 @@ def predict_category(embedding_vector):
     """
     session = SessionLocal()
     try:
-        # Using raw SQL for the specific pgvector query as requested in spec
-        # confidence = 1 - cosine_distance
         query = text("""
             SELECT actual_category,
                    (1 - (embedding <=> CAST(:val AS vector))) as confidence
@@ -161,11 +157,46 @@ def get_pending_transactions():
         session.close()
 
 
+def get_transactions(
+    search: str = None,
+    status: str = None,
+    category: str = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    session = SessionLocal()
+    try:
+        query = session.query(Transaction)
+        if search:
+            query = query.filter(Transaction.raw_string.ilike(f"%{search}%"))
+        if status:
+            query = query.filter(Transaction.status == status)
+        if category:
+            query = query.filter(
+                (Transaction.actual_category == category)
+                | (
+                    (Transaction.actual_category == None)
+                    & (Transaction.predicted_category == category)
+                )
+            )
+
+        total = query.count()
+        results = query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
+        return results, total
+    finally:
+        session.close()
+
+
+def get_all_transactions():
+    session = SessionLocal()
+    try:
+        return session.query(Transaction).order_by(Transaction.date.desc()).all()
+    finally:
+        session.close()
+
+
 def transaction_exists_by_description(raw_string: str) -> bool:
-    """
-    Checks if a transaction with the same raw_string
-    already exists in the database.
-    """
+    """Checks if a transaction already exists in the database."""
     session = SessionLocal()
     try:
         return (
@@ -190,6 +221,46 @@ def update_transaction(transaction_id, actual_category):
             session.commit()
             return True
         return False
+    finally:
+        session.close()
+
+
+def update_transactions_bulk(transaction_ids, actual_category):
+    session = SessionLocal()
+    try:
+        session.query(Transaction).filter(Transaction.id.in_(transaction_ids)).update(
+            {"actual_category": actual_category, "status": "verified"},
+            synchronize_session=False,
+        )
+        session.commit()
+        return True
+    finally:
+        session.close()
+
+
+def get_category_stats():
+    session = SessionLocal()
+    try:
+        category_col = func.coalesce(
+            Transaction.actual_category, Transaction.predicted_category
+        )
+        results = (
+            session.query(category_col, func.count(Transaction.id))
+            .group_by(category_col)
+            .all()
+        )
+        total = session.query(Transaction).count()
+        return {
+            "total": total,
+            "breakdown": [
+                {
+                    "category": cat or "Unknown",
+                    "count": count,
+                    "percentage": (count / total * 100) if total > 0 else 0
+                }
+                for cat, count in results
+            ],
+        }
     finally:
         session.close()
 
@@ -236,7 +307,6 @@ def delete_category(name: str):
     try:
         cat = session.query(Category).filter(Category.name == name).first()
         if cat:
-            # Revert affected transactions to pending
             session.query(Transaction).filter(
                 Transaction.actual_category == name
             ).update({"status": "pending"})
