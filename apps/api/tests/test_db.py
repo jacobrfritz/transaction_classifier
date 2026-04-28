@@ -24,7 +24,7 @@ def test_transaction_exists_by_description(mock_session_local):
 def test_add_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     db.add_category("Test Category")
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
@@ -34,7 +34,7 @@ def test_add_category(mock_session_local):
 def test_get_all_categories(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     mock_cat1 = MagicMock()
     mock_cat1.name = "A"
     mock_cat2 = MagicMock()
@@ -52,16 +52,16 @@ def test_get_all_categories(mock_session_local):
 def test_predict_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     # Mock return value for session.execute with multiple neighbors
     mock_result = MagicMock()
     mock_result.fetchall.return_value = [
         ("Groceries", 0.9),
         ("Groceries", 0.8),
-        ("Dining", 0.85)
+        ("Dining", 0.85),
     ]
     mock_session.execute.return_value = mock_result
-    
+
     cat, conf = db.predict_category([0.1] * 384)
     # Groceries should win: (0.9 + 0.8) = 1.7 vs Dining: 0.85
     # Avg conf for Groceries: (0.9 + 0.8) / 2 = 0.85
@@ -74,14 +74,14 @@ def test_predict_category(mock_session_local):
 def test_predict_category_fallback(mock_session_local, mock_get_cats):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     # Mock return value for session.execute with NO neighbors
     mock_result = MagicMock()
     mock_result.fetchall.return_value = []
     mock_session.execute.return_value = mock_result
-    
+
     mock_get_cats.return_value = ["Transport", "Utilities"]
-    
+
     cat, conf = db.predict_category([0.1] * 384)
     assert cat in ["Transport", "Utilities"]
     assert conf == 0.0
@@ -91,10 +91,10 @@ def test_predict_category_fallback(mock_session_local, mock_get_cats):
 def test_update_transaction(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     mock_tx = MagicMock()
     mock_session.query.return_value.filter.return_value.first.return_value = mock_tx
-    
+
     success = db.update_transaction("some-id", "Groceries")
     assert success is True
     assert mock_tx.actual_category == "Groceries"
@@ -106,7 +106,7 @@ def test_update_transaction(mock_session_local):
 def test_insert_transaction(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     db.insert_transaction(
         date="2026-04-26",
         amount=10.0,
@@ -114,7 +114,7 @@ def test_insert_transaction(mock_session_local):
         clean_string="clean",
         predicted_category="Groceries",
         confidence_score=0.9,
-        embedding=[0.1] * 384
+        embedding=[0.1] * 384,
     )
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
@@ -124,10 +124,10 @@ def test_insert_transaction(mock_session_local):
 def test_rename_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     mock_cat = MagicMock()
     mock_session.query.return_value.filter.return_value.first.return_value = mock_cat
-    
+
     success = db.rename_category("Old", "New")
     assert success is True
     assert mock_cat.name == "New"
@@ -140,9 +140,9 @@ def test_rename_category(mock_session_local):
 def test_init_db(mock_seed, mock_base, mock_engine):
     mock_conn = MagicMock()
     mock_engine.connect.return_value.__enter__.return_value = mock_conn
-    
+
     db.init_db()
-    
+
     assert mock_conn.execute.called
     assert mock_base.metadata.create_all.called
     assert mock_seed.called
@@ -152,13 +152,13 @@ def test_init_db(mock_seed, mock_base, mock_engine):
 def test_seed_categories(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     # Case 1: Table is empty
     mock_session.query.return_value.count.return_value = 0
     db.seed_categories()
     assert mock_session.add.called
     assert mock_session.commit.called
-    
+
     # Case 2: Table is not empty
     mock_session.reset_mock()
     mock_session.query.return_value.count.return_value = 5
@@ -170,11 +170,13 @@ def test_seed_categories(mock_session_local):
 def test_get_transactions(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     mock_tx = MagicMock()
-    mock_session.query.return_value.filter.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_tx]
+    mock_session.query.return_value.filter.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
+        mock_tx
+    ]
     mock_session.query.return_value.filter.return_value.filter.return_value.count.return_value = 1
-    
+
     results, total = db.get_transactions(search="test", status="pending")
     assert results == [mock_tx]
     assert total == 1
@@ -184,7 +186,7 @@ def test_get_transactions(mock_session_local):
 def test_update_transactions_bulk(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
+
     success = db.update_transactions_bulk(["id1", "id2"], "Dining")
     assert success is True
     mock_session.query.return_value.filter.return_value.update.assert_called_once()
@@ -195,10 +197,12 @@ def test_update_transactions_bulk(mock_session_local):
 def test_get_category_stats(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
-    
-    mock_session.query.return_value.group_by.return_value.all.return_value = [("Dining", 5)]
+
+    mock_session.query.return_value.group_by.return_value.all.return_value = [
+        ("Dining", 5)
+    ]
     mock_session.query.return_value.count.return_value = 5
-    
+
     stats = db.get_category_stats()
     assert stats["total"] == 5
     assert stats["breakdown"][0]["category"] == "Dining"

@@ -15,6 +15,7 @@ from api import db, mapping, ml
 
 app = FastAPI(title="Transaction Classifier API")
 
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print(f"Incoming request: {request.method} {request.url.path}")
@@ -26,9 +27,11 @@ async def log_requests(request: Request, call_next):
         print(f"Request failed: {e}")
         raise
 
+
 @app.get("/")
 def read_root():
     return {"message": "Transaction Classifier API is running"}
+
 
 # Configure CORS
 app.add_middleware(

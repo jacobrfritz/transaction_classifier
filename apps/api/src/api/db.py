@@ -144,7 +144,7 @@ def predict_category(embedding_vector):
             LIMIT 5;
         """)
         results = session.execute(query, {"val": embedding_vector}).fetchall()
-        
+
         if not results:
             # Fallback: if no verified transactions, assign a random category
             categories = get_all_categories()
@@ -158,11 +158,11 @@ def predict_category(embedding_vector):
         for cat, conf in results:
             category_scores[cat] = category_scores.get(cat, 0.0) + float(conf)
             category_counts[cat] = category_counts.get(cat, 0) + 1
-        
+
         # Select category with the highest total confidence score
         winner = max(category_scores, key=category_scores.get)
         avg_confidence = category_scores[winner] / category_counts[winner]
-        
+
         return winner, avg_confidence
     finally:
         session.close()
@@ -200,7 +200,9 @@ def get_transactions(
             )
 
         total = query.count()
-        results = query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
+        results = (
+            query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
+        )
         return results, total
     finally:
         session.close()
@@ -275,7 +277,7 @@ def get_category_stats():
                 {
                     "category": cat or "Unknown",
                     "count": count,
-                    "percentage": (count / total * 100) if total > 0 else 0
+                    "percentage": (count / total * 100) if total > 0 else 0,
                 }
                 for cat, count in results
             ],
