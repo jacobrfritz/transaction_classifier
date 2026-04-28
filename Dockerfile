@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock README.md ./
 # Use --no-install-project to cache dependencies without the source code
 # We use a cache mount for uv to speed up subsequent builds
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --extra api --no-install-project
+    uv sync --frozen --no-install-project
 
 # Pre-download the ML model BEFORE copying source code
 # This ensures that code changes don't trigger a model redownload.
@@ -32,7 +32,7 @@ COPY src ./src
 
 # Install the project itself
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --extra api
+    uv sync --frozen
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

@@ -10,6 +10,11 @@ dependencies = [
     "rich>=14.3.4",
     "sentence-transformers>=5.4.1",
     "sqlalchemy>=2.0.49",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.scripts]
@@ -29,15 +34,6 @@ ml = [
     "torch>=2.0.0",
     "transformers>=4.30.0",
     "huggingface-hub>=0.16.0",
-]
-
-# Web APIs & Backend
-api = [
-    "fastapi>=0.100.0",
-    "uvicorn[standard]>=0.22.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "python-multipart>=0.0.9",
 ]
 
 # Data Engineering & Pipelines
