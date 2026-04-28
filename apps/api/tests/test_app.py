@@ -1,7 +1,9 @@
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-from uuid import uuid4
+
 from api.app import app
 
 client = TestClient(app)

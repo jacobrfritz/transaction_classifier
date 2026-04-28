@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Wallet } from 'lucide-react';
+import logger from '@/lib/logger';
 import Upload from '@/components/Upload';
 import Stats from '@/components/Stats';
 import TransactionTable from '@/components/TransactionTable';
@@ -19,7 +20,7 @@ export default function Home() {
       const response = await axios.get(`${apiUrl}/api/categories`);
       setCategories(response.data);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      logger.error({ err: error }, 'Error fetching categories:');
     }
   };
 

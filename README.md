@@ -43,6 +43,12 @@ This project provides a full-stack solution for managing and classifying bank tr
 └── docker-compose.yml # Full stack orchestration
 ```
 
+## 📝 Logging & Observability
+
+- **Backend**: Uses Python's standard `logging` with `RotatingFileHandler`. Logs are stored in `apps/api/logs/app.log`.
+- **Frontend**: Uses `Pino` for structured logging in the Next.js application.
+- **Config**: Set `LOG_LEVEL` (DEBUG, INFO, etc.) in your environment variables to control verbosity.
+
 ## 🚦 Getting Started
 
 ### Prerequisites

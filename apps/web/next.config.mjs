@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  output: 'standalone',
+  experimental: {
+    // This helps avoid issues with worker threads in some Docker environments
+    workerThreads: false,
+    cpus: 1
+  }
 };
 
 export default nextConfig;

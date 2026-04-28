@@ -1,7 +1,10 @@
 import json
+import logging
 import os
 
 MAPPINGS_FILE = "csv_mappings.json"
+
+logger = logging.getLogger(__name__)
 
 
 def _get_signature(headers: list[str]) -> str:

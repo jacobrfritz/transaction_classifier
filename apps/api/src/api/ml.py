@@ -1,16 +1,18 @@
+import logging
 import re
-from typing import Optional
 
 from sentence_transformers import SentenceTransformer
 
+logger = logging.getLogger(__name__)
+
 # Lazy loader for the model
-_model: Optional[SentenceTransformer] = None
+_model: SentenceTransformer | None = None
 
 
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        print("Loading SentenceTransformer model...")
+        logger.info("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
         _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 

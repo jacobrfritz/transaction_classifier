@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/  <-- Commented out to avoid ignoring src/lib in JS apps
 lib64/
 parts/
 sdist/
@@ -208,3 +208,11 @@ __marimo__/
 
 # local
 *.csv
+
+# Logs
+apps/api/logs/
+apps/web/logs/
+
+# Node modules
+node_modules/
+apps/web/node_modules/

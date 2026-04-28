@@ -24,6 +24,9 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://admin:password@db:5432/transactions_db
+      LOG_LEVEL: INFO
+    volumes:
+      - ./apps/api/logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +39,9 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      LOG_LEVEL: info
+    volumes:
+      - ./apps/web/logs:/app/logs
     depends_on:
       - backend
 

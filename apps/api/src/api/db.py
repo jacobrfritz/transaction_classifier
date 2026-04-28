@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 from uuid import uuid4
@@ -21,6 +22,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 DB_URL = os.getenv(
     "DATABASE_URL", "postgresql+psycopg://admin:password@localhost:5432/transactions_db"
 )
+
+logger = logging.getLogger(__name__)
 
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

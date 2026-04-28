@@ -1,30 +1,55 @@
 import csv
 import io
+import logging
+import time
+from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from api import db, mapping, ml
+from api import db, logging_config, mapping, ml
 
-app = FastAPI(title="Transaction Classifier API")
+# Initialize logging
+logging_config.setup_logging()
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        db.init_db()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+    yield
+
+
+app = FastAPI(title="Transaction Classifier API", lifespan=lifespan)
 
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"Incoming request: {request.method} {request.url.path}")
+    start_time = time.time()
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+    
     try:
         response = await call_next(request)
-        print(f"Response status: {response.status_code}")
+        process_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"Response: {response.status_code} {request.method} {request.url.path} "
+            f"(took {process_time:.2f}ms)"
+        )
         return response
     except Exception as e:
-        print(f"Request failed: {e}")
+        process_time = (time.time() - start_time) * 1000
+        logger.error(
+            f"Request failed: {e} after {process_time:.2f}ms "
+            f"({request.method} {request.url.path})"
+        )
         raise
 
 
@@ -48,17 +73,8 @@ class CategoryBase(BaseModel):
 
 
 class BulkUpdate(BaseModel):
-    ids: List[UUID]
+    ids: list[UUID]
     category: str
-
-
-@app.on_event("startup")
-def startup_event():
-    try:
-        db.init_db()
-        print("Database initialized successfully.")
-    except Exception as e:
-        print(f"Error initializing database: {e}")
 
 
 @app.get("/api/health")
@@ -96,9 +112,9 @@ def delete_category(name: str):
 
 @app.get("/api/transactions")
 def get_transactions(
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    category: Optional[str] = None,
+    search: str | None = None,
+    status: str | None = None,
+    category: str | None = None,
     page: int = 1,
     limit: int = 50,
 ):
@@ -141,9 +157,9 @@ def get_stats():
 @app.post("/api/upload")
 async def upload_csv(
     file: UploadFile = File(...),
-    date_col: Optional[str] = Form(None),
-    amount_col: Optional[str] = Form(None),
-    description_col: Optional[str] = Form(None),
+    date_col: str | None = Form(None),
+    amount_col: str | None = Form(None),
+    description_col: str | None = Form(None),
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -169,14 +185,14 @@ async def upload_csv(
         header_mapping = mapping.get_mapping_for_headers(fieldnames)
 
     if not header_mapping:
-        print(f"Mapping required for headers: {fieldnames}")
+        logger.warning(f"Mapping required for headers: {fieldnames}")
         return {
             "status": "mapping_required",
             "headers": fieldnames,
             "message": "Column mapping required. Please use the CLI to map these headers first.",
         }
 
-    print(f"Starting ingestion with mapping: {header_mapping}")
+    logger.info(f"Starting ingestion with mapping: {header_mapping}")
     added_count = 0
     skipped_count = 0
 
@@ -190,7 +206,7 @@ async def upload_csv(
             skipped_count += 1
             continue
 
-        print(f"Processing transaction: {raw_string[:50]}...")
+        logger.debug(f"Processing transaction: {raw_string[:50]}...")
         raw_date = row.get(header_mapping["date"])
         raw_amount = row.get(header_mapping["amount"])
 
@@ -218,7 +234,7 @@ async def upload_csv(
         )
         added_count += 1
 
-    print(f"Ingestion complete. Added: {added_count}, Skipped: {skipped_count}")
+    logger.info(f"Ingestion complete. Added: {added_count}, Skipped: {skipped_count}")
     return {
         "status": "success",
         "added": added_count,
