@@ -2,13 +2,13 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 from uuid import uuid4
-from transaction_classifier.app import app
+from api.app import app
 
 client = TestClient(app)
 
 @pytest.fixture
 def mock_db():
-    with patch("transaction_classifier.app.db") as mock:
+    with patch("api.app.db") as mock:
         yield mock
 
 def test_list_categories(mock_db):
@@ -55,7 +55,7 @@ def test_bulk_update_transactions(mock_db):
     mock_db.update_transactions_bulk.assert_called_once()
 
 def test_upload_csv_mapping_required(mock_db):
-    with patch("transaction_classifier.app.mapping") as mock_mapping:
+    with patch("api.app.mapping") as mock_mapping:
         mock_mapping.get_mapping_for_headers.return_value = None
         
         csv_content = "Col1,Col2\nVal1,Val2"
@@ -68,8 +68,8 @@ def test_upload_csv_mapping_required(mock_db):
         assert response.json()["status"] == "mapping_required"
 
 def test_upload_csv_with_mapping(mock_db):
-    with patch("transaction_classifier.app.mapping") as mock_mapping:
-        with patch("transaction_classifier.app.ml") as mock_ml:
+    with patch("api.app.mapping") as mock_mapping:
+        with patch("api.app.ml") as mock_ml:
             mock_ml.clean_text.return_value = "clean"
             mock_ml.get_embedding.return_value = [0.1] * 384
             mock_db.transaction_exists_by_description.return_value = False

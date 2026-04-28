@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from transaction_classifier import db
+from api import db
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_transaction_exists_by_description(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -20,7 +20,7 @@ def test_transaction_exists_by_description(mock_session_local):
     assert exists is False
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_add_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -30,7 +30,7 @@ def test_add_category(mock_session_local):
     mock_session.commit.assert_called_once()
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_get_all_categories(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -48,7 +48,7 @@ def test_get_all_categories(mock_session_local):
     assert categories == ["A", "B"]
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_predict_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -69,8 +69,8 @@ def test_predict_category(mock_session_local):
     assert conf == pytest.approx(0.85)
 
 
-@patch("transaction_classifier.db.get_all_categories")
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.get_all_categories")
+@patch("api.db.SessionLocal")
 def test_predict_category_fallback(mock_session_local, mock_get_cats):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -87,7 +87,7 @@ def test_predict_category_fallback(mock_session_local, mock_get_cats):
     assert conf == 0.0
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_update_transaction(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -102,7 +102,7 @@ def test_update_transaction(mock_session_local):
     mock_session.commit.assert_called_once()
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_insert_transaction(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -120,7 +120,7 @@ def test_insert_transaction(mock_session_local):
     mock_session.commit.assert_called_once()
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_rename_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -134,9 +134,9 @@ def test_rename_category(mock_session_local):
     mock_session.commit.assert_called_once()
 
 
-@patch("transaction_classifier.db.engine")
-@patch("transaction_classifier.db.Base")
-@patch("transaction_classifier.db.seed_categories")
+@patch("api.db.engine")
+@patch("api.db.Base")
+@patch("api.db.seed_categories")
 def test_init_db(mock_seed, mock_base, mock_engine):
     mock_conn = MagicMock()
     mock_engine.connect.return_value.__enter__.return_value = mock_conn
@@ -148,7 +148,7 @@ def test_init_db(mock_seed, mock_base, mock_engine):
     assert mock_seed.called
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_seed_categories(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -166,7 +166,7 @@ def test_seed_categories(mock_session_local):
     assert not mock_session.add.called
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_get_transactions(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -180,7 +180,7 @@ def test_get_transactions(mock_session_local):
     assert total == 1
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_update_transactions_bulk(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
@@ -191,7 +191,7 @@ def test_update_transactions_bulk(mock_session_local):
     mock_session.commit.assert_called_once()
 
 
-@patch("transaction_classifier.db.SessionLocal")
+@patch("api.db.SessionLocal")
 def test_get_category_stats(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session

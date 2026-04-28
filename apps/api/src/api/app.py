@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from transaction_classifier import db, mapping, ml
+from api import db, mapping, ml
 
 app = FastAPI(title="Transaction Classifier API")
 

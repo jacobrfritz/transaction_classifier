@@ -1,25 +1,22 @@
 .PHONY: install test test-watch test-cov lint format typecheck run
 
 install:
-	uv sync
+	cd apps/api && uv sync
 
 test:
-	uv run pytest
+	cd apps/api && uv run pytest
 
 test-watch:
-	uv run ptw
+	cd apps/api && uv run ptw
 
 test-cov:
-	uv run pytest --cov=src --cov-report=term-missing
+	cd apps/api && uv run pytest --cov=src --cov-report=term-missing
 
 lint:
-	uv run ruff check .
+	cd apps/api && uv run ruff check .
 
 format:
-	uv run ruff format .
+	cd apps/api && uv run ruff format .
 
 typecheck:
-	uv run mypy src
-
-run:
-	uv run transaction_classifier
+	cd apps/api && uv run mypy src

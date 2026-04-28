@@ -1,6 +1,6 @@
 from unittest.mock import mock_open, patch
 
-from transaction_classifier import mapping
+from api import mapping
 
 
 def test_get_signature():
@@ -41,7 +41,7 @@ def test_load_mappings(mock_file, mock_exists):
     assert mappings["a,b,c"]["date"] == "a"
 
 
-@patch("transaction_classifier.mapping.load_mappings")
+@patch("api.mapping.load_mappings")
 @patch("builtins.open", new_callable=mock_open)
 def test_save_mapping(mock_file, mock_load):
     mock_load.return_value = {}

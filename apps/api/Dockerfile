@@ -43,4 +43,4 @@ ENV DATABASE_URL=postgresql+psycopg://admin:password@db:5432/transactions_db
 EXPOSE 8000
 
 # Run the application
-CMD ["/app/.venv/bin/python", "-m", "uvicorn", "transaction_classifier.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,5 +1,5 @@
 [project]
-name = "transaction_classifier"
+name = "api"
 version = "0.1.0"
 description = "A default Python project template using uv."
 readme = "README.md"
@@ -16,9 +16,6 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-multipart>=0.0.9",
 ]
-
-[project.scripts]
-transaction_classifier = "transaction_classifier.cli:main"
 
 [project.optional-dependencies]
 # Analytics & Data Manipulation
@@ -69,7 +66,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/transaction_classifier"]
+packages = ["src/api"]
 
 [tool.ruff]
 line-length = 88

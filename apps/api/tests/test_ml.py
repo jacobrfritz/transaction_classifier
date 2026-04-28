@@ -1,4 +1,4 @@
-from transaction_classifier import ml
+from api import ml
 
 
 def test_clean_text():
