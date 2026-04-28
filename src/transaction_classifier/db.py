@@ -1,4 +1,5 @@
 import os
+import random
 from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
@@ -128,8 +129,9 @@ def insert_transaction(
 
 def predict_category(embedding_vector):
     """
-    Searches for the nearest verified neighbor using cosine distance.
-    Returns (actual_category, confidence) or (None, 0.0)
+    Searches for the 5 nearest verified neighbors using cosine distance.
+    Uses distance-weighted voting to determine the best category.
+    Returns (predicted_category, average_confidence)
     """
     session = SessionLocal()
     try:
@@ -139,12 +141,29 @@ def predict_category(embedding_vector):
             FROM transactions
             WHERE status = 'verified'
             ORDER BY embedding <=> CAST(:val AS vector)
-            LIMIT 1;
+            LIMIT 5;
         """)
-        result = session.execute(query, {"val": embedding_vector}).fetchone()
-        if result:
-            return result[0], float(result[1])
-        return None, 0.0
+        results = session.execute(query, {"val": embedding_vector}).fetchall()
+        
+        if not results:
+            # Fallback: if no verified transactions, assign a random category
+            categories = get_all_categories()
+            if categories:
+                return random.choice(categories), 0.0
+            return None, 0.0
+
+        # Weighted voting
+        category_scores = {}
+        category_counts = {}
+        for cat, conf in results:
+            category_scores[cat] = category_scores.get(cat, 0.0) + float(conf)
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        
+        # Select category with the highest total confidence score
+        winner = max(category_scores, key=category_scores.get)
+        avg_confidence = category_scores[winner] / category_counts[winner]
+        
+        return winner, avg_confidence
     finally:
         session.close()
 

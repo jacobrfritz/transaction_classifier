@@ -1,3 +1,4 @@
+import pytest
 from unittest.mock import MagicMock, patch
 
 from transaction_classifier import db
@@ -52,14 +53,38 @@ def test_predict_category(mock_session_local):
     mock_session = MagicMock()
     mock_session_local.return_value = mock_session
     
-    # Mock return value for session.execute
+    # Mock return value for session.execute with multiple neighbors
     mock_result = MagicMock()
-    mock_result.fetchone.return_value = ("Groceries", 0.9)
+    mock_result.fetchall.return_value = [
+        ("Groceries", 0.9),
+        ("Groceries", 0.8),
+        ("Dining", 0.85)
+    ]
     mock_session.execute.return_value = mock_result
     
     cat, conf = db.predict_category([0.1] * 384)
+    # Groceries should win: (0.9 + 0.8) = 1.7 vs Dining: 0.85
+    # Avg conf for Groceries: (0.9 + 0.8) / 2 = 0.85
     assert cat == "Groceries"
-    assert conf == 0.9
+    assert conf == pytest.approx(0.85)
+
+
+@patch("transaction_classifier.db.get_all_categories")
+@patch("transaction_classifier.db.SessionLocal")
+def test_predict_category_fallback(mock_session_local, mock_get_cats):
+    mock_session = MagicMock()
+    mock_session_local.return_value = mock_session
+    
+    # Mock return value for session.execute with NO neighbors
+    mock_result = MagicMock()
+    mock_result.fetchall.return_value = []
+    mock_session.execute.return_value = mock_result
+    
+    mock_get_cats.return_value = ["Transport", "Utilities"]
+    
+    cat, conf = db.predict_category([0.1] * 384)
+    assert cat in ["Transport", "Utilities"]
+    assert conf == 0.0
 
 
 @patch("transaction_classifier.db.SessionLocal")
